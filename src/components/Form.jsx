@@ -1,48 +1,95 @@
-// Importamos React y dos hooks: useState para manejar el estado del input,
-// y useEffect para reaccionar a cambios en las props.
 import React, { useState, useEffect } from 'react';
 
-// Componente funcional Form que recibe dos props:
-// - addOrUpdateItem: función para agregar o actualizar un item
-// - itemToEdit: item que se quiere editar (si existe)
 function Form({ addOrUpdateItem, itemToEdit }) {
-  // inputValue es el estado del valor del campo de texto
-  // setInputValue es la función para actualizar ese valor
-  const [inputValue, setInputValue] = useState('');
+  const [formData, setFormData] = useState({
+    nombre: '',
+    asignatura: '',
+    promedio: ''
+  });
 
-  // Este useEffect se ejecuta cada vez que itemToEdit cambia
-  // Si hay un item para editar, llenamos el input con su valor
-  // Si no hay item, limpiamos el campo
+  // Cargar datos en modo edición
   useEffect(() => {
     if (itemToEdit) {
-      setInputValue(itemToEdit.value); // modo edición
+      setFormData(itemToEdit);
     } else {
-      setInputValue(''); // modo creación
+      setFormData({ nombre: '', asignatura: '', promedio: '' });
     }
-  }, [itemToEdit]); // Dependencia: se ejecuta cuando cambia itemToEdit
+  }, [itemToEdit]);
 
-  // Esta función maneja el envío del formulario
-  const handleSubmit = (e) => {
-    e.preventDefault(); // Previene la recarga de la página
-
-    // Solo procede si el input no está vacío
-    if (inputValue.trim()) {
-      addOrUpdateItem(inputValue); // Llama a la función para agregar o actualizar
-      setInputValue(''); // Limpia el campo de texto después de enviar
-    }
+  // Calcular escala de apreciación según promedio
+  const calcularEscala = (promedio) => {
+    const p = parseFloat(promedio);
+    if (p >= 6.5 && p <= 7.0) return 'Destacado';
+    if (p >= 5.6 && p <= 6.4) return 'Buen trabajo';
+    if (p >= 4.0 && p <= 5.5) return 'Con mejora';
+    if (p < 4.0) return 'Deficiente';
+    return '';
   };
 
-  // JSX que se renderiza en pantalla
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const { nombre, asignatura, promedio } = formData;
+
+    if (!nombre.trim() || !asignatura.trim() || !promedio.trim()) {
+      alert('Todos los campos son obligatorios.');
+      return;
+    }
+
+    if (isNaN(promedio) || promedio < 1 || promedio > 7) {
+      alert('El promedio debe ser un número entre 1.0 y 7.0');
+      return;
+    }
+
+    const escala = calcularEscala(promedio);
+
+    const alumno = {
+      ...formData,
+      promedio: parseFloat(promedio),
+      escala,
+      id: itemToEdit ? itemToEdit.id : Date.now()
+    };
+
+    addOrUpdateItem(alumno);
+    setFormData({ nombre: '', asignatura: '', promedio: '' });
+  };
+
   return (
     <form onSubmit={handleSubmit}>
-      {/* Campo de texto controlado */}
+      <h2>{itemToEdit ? 'Editar Alumno' : 'Agregar Alumno'}</h2>
+
       <input
         type="text"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)} // Actualiza el estado al escribir
+        name="nombre"
+        placeholder="Nombre del alumno"
+        value={formData.nombre}
+        onChange={handleChange}
       />
 
-      {/* Botón que cambia según si estamos editando o creando */}
+      <input
+        type="text"
+        name="asignatura"
+        placeholder="Asignatura"
+        value={formData.asignatura}
+        onChange={handleChange}
+      />
+
+      <input
+        type="number"
+        step="0.1"
+        name="promedio"
+        placeholder="Promedio (1.0 a 7.0)"
+        value={formData.promedio}
+        onChange={handleChange}
+      />
+
+      {formData.promedio && !isNaN(formData.promedio) && (
+        <p>Escala: <strong>{calcularEscala(formData.promedio)}</strong></p>
+      )}
+
       <button type="submit">
         {itemToEdit ? 'Actualizar' : 'Agregar'}
       </button>
@@ -50,5 +97,4 @@ function Form({ addOrUpdateItem, itemToEdit }) {
   );
 }
 
-// Exportamos el componente para poder usarlo en otros archivos
 export default Form;
